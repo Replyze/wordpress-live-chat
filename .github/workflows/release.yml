@@ -23,7 +23,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: The tag matches the plugin version
         run: |
@@ -71,7 +71,7 @@ jobs:
         if: env.SVN_USERNAME == '' || env.SVN_PASSWORD == ''
         run: echo "::notice::SVN_USERNAME / SVN_PASSWORD are not set, so nothing is deployed to wordpress.org. See RELEASING.md."
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: env.SVN_USERNAME != '' && env.SVN_PASSWORD != ''
 
       - name: Deploy to wordpress.org

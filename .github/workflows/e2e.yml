@@ -32,8 +32,8 @@ jobs:
       run:
         working-directory: tests/e2e
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -42,7 +42,7 @@ jobs:
       - run: npx playwright install --with-deps chromium-headless-shell
       - name: Run the end-to-end test
         run: node e2e.mjs --php "${{ matrix.php }}" --wp "${{ matrix.wp }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: e2e-php${{ matrix.php }}-wp${{ matrix.wp }}
