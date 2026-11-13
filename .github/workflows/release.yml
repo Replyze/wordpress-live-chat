@@ -31,26 +31,17 @@ jobs:
           v="${GITHUB_REF_NAME#v}"
           grep -q "^ \* Version: *$v$" replyze/replyze.php
           grep -q "^define( 'REPLYZE_VERSION', '$v' );" replyze/replyze.php
-          grep -q "^Stable tag: $v" replyze/readme.txt
+          grep -q "^Stable tag: $v$" replyze/readme.txt
           grep -q "^= $v =" replyze/readme.txt
           grep -q "^## \[$v\]" CHANGELOG.md
 
       - name: Build replyze.zip (top folder replyze/)
-        run: |
-          set -e
-          mkdir -p dist
-          zip -r -X dist/replyze.zip replyze -x '*.DS_Store'
-          unzip -l dist/replyze.zip
+        run: bash bin/build-zip.sh
 
       - name: Release notes from CHANGELOG.md
         run: |
-          v="${GITHUB_REF_NAME#v}"
-          awk -v v="$v" '
-            index($0, "## [" v "]") == 1 { on = 1; next }
-            on && /^## \[/ { exit }
-            on && /^\[[^]]+\]: / { exit }
-            on { print }
-          ' CHANGELOG.md > notes.md
+          set -e
+          bash bin/changelog-section.sh "${GITHUB_REF_NAME#v}" > notes.md
           test -s notes.md
           cat notes.md
 

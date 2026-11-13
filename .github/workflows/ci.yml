@@ -59,6 +59,26 @@ jobs:
         with:
           build-dir: ./replyze
 
+  build:
+    name: Build replyze.zip
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the ZIP the release attaches
+        run: bash bin/build-zip.sh
+      - name: Release notes for this version (from CHANGELOG.md)
+        run: |
+          set -e
+          v=$(sed -n 's/^ \* Version: *//p' replyze/replyze.php)
+          bash bin/changelog-section.sh "$v" | tee notes.md
+          test -s notes.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: replyze-zip
+          path: dist/replyze.zip
+          retention-days: 14
+
   readme:
     name: Versions agree
     runs-on: ubuntu-latest

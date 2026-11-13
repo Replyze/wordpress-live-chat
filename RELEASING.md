@@ -29,8 +29,11 @@ The README's Quickstart links to `releases/latest`, so it points to the new ZIP 
 ## Build the ZIP by hand
 
 ```bash
-zip -r -X replyze.zip replyze -x '*.DS_Store'
+bash bin/build-zip.sh                 # dist/replyze.zip, with replyze/ at its root
+bash bin/changelog-section.sh 1.2.1   # the release notes for a version
 ```
+
+CI builds the same ZIP on every push; it is the `replyze-zip` artifact of the CI run.
 
 ## wordpress.org (one-time setup)
 
