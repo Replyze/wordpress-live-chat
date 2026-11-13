@@ -2,14 +2,15 @@ name: Release
 
 # Push a tag vX.Y.Z (after the version bump is on main): this builds
 # replyze.zip, creates the GitHub release with the notes from CHANGELOG.md,
-# and deploys to wordpress.org when the SVN secrets are set.
+# and deploys to wordpress.org when the repository variable
+# WORDPRESS_ORG_DEPLOY is "true". The SVN credentials are secrets of the
+# protected environment "wordpress-org" only. See RELEASING.md.
 
 on:
   push:
     tags: ['v*']
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: release-${{ github.ref }}
@@ -58,26 +59,32 @@ jobs:
               --title "Replyze for WordPress ${tag#v}" --notes-file notes.md
           fi
 
+      - name: wordpress.org deploy is off
+        if: vars.WORDPRESS_ORG_DEPLOY != 'true'
+        run: echo "::notice::Not deployed to wordpress.org (the repository variable WORDPRESS_ORG_DEPLOY is not true). See RELEASING.md."
+
   wordpress-org:
     name: wordpress.org SVN
     needs: github
+    if: vars.WORDPRESS_ORG_DEPLOY == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
-      SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+    # SVN_USERNAME and SVN_PASSWORD are secrets of this environment, not of the
+    # repository: only a job that names the environment (on a tag its rules
+    # allow) can read them. The deploy action is pinned to a commit.
+    environment: wordpress-org
+    permissions:
+      contents: read
     steps:
-      - name: Skip without SVN credentials
-        if: env.SVN_USERNAME == '' || env.SVN_PASSWORD == ''
-        run: echo "::notice::SVN_USERNAME / SVN_PASSWORD are not set, so nothing is deployed to wordpress.org. See RELEASING.md."
-
       - uses: actions/checkout@v7
-        if: env.SVN_USERNAME != '' && env.SVN_PASSWORD != ''
+        with:
+          persist-credentials: false
 
       - name: Deploy to wordpress.org
-        if: env.SVN_USERNAME != '' && env.SVN_PASSWORD != ''
-        uses: 10up/action-wordpress-plugin-deploy@stable
+        uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2 # 2.3.0
         env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
           SLUG: replyze
           BUILD_DIR: replyze
           ASSETS_DIR: .wordpress-org
