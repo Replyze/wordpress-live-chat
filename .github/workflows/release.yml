@@ -1,0 +1,92 @@
+name: Release
+
+# Push a tag vX.Y.Z (after the version bump is on main): this builds
+# replyze.zip, creates the GitHub release with the notes from CHANGELOG.md,
+# and deploys to wordpress.org when the SVN secrets are set.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  github:
+    name: GitHub release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The tag matches the plugin version
+        run: |
+          set -e
+          v="${GITHUB_REF_NAME#v}"
+          grep -q "^ \* Version: *$v$" replyze/replyze.php
+          grep -q "^define( 'REPLYZE_VERSION', '$v' );" replyze/replyze.php
+          grep -q "^Stable tag: $v" replyze/readme.txt
+          grep -q "^= $v =" replyze/readme.txt
+          grep -q "^## \[$v\]" CHANGELOG.md
+
+      - name: Build replyze.zip (top folder replyze/)
+        run: |
+          set -e
+          mkdir -p dist
+          zip -r -X dist/replyze.zip replyze -x '*.DS_Store'
+          unzip -l dist/replyze.zip
+
+      - name: Release notes from CHANGELOG.md
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          awk -v v="$v" '
+            index($0, "## [" v "]") == 1 { on = 1; next }
+            on && /^## \[/ { exit }
+            on && /^\[[^]]+\]: / { exit }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          test -s notes.md
+          cat notes.md
+
+      - name: Create the release, or attach the ZIP to an existing one
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          tag="$GITHUB_REF_NAME"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release upload "$tag" dist/replyze.zip --clobber
+          else
+            gh release create "$tag" dist/replyze.zip --verify-tag \
+              --title "Replyze for WordPress ${tag#v}" --notes-file notes.md
+          fi
+
+  wordpress-org:
+    name: wordpress.org SVN
+    needs: github
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+      SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+    steps:
+      - name: Skip without SVN credentials
+        if: env.SVN_USERNAME == '' || env.SVN_PASSWORD == ''
+        run: echo "::notice::SVN_USERNAME / SVN_PASSWORD are not set, so nothing is deployed to wordpress.org. See RELEASING.md."
+
+      - uses: actions/checkout@v4
+        if: env.SVN_USERNAME != '' && env.SVN_PASSWORD != ''
+
+      - name: Deploy to wordpress.org
+        if: env.SVN_USERNAME != '' && env.SVN_PASSWORD != ''
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        env:
+          SLUG: replyze
+          BUILD_DIR: replyze
+          ASSETS_DIR: .wordpress-org

@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  php-lint:
+    name: php -l (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: none
+      - name: Lint every PHP file of the plugin
+        run: |
+          set -e
+          find replyze -name '*.php' -print0 | xargs -0 -n1 php -l
+
+  phpcs:
+    name: PHPCS (WordPress-Extra, PHPCompatibilityWP 7.4+)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+      - name: Install the coding standards (composer.lock)
+        run: composer install --no-interaction --no-progress
+      - name: PHPCS
+        run: composer lint
+
+  plugin-check:
+    name: Plugin Check (wordpress.org)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Plugin Check on replyze/
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: ./replyze
+
+  readme:
+    name: Versions agree
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Header, constant, Stable tag and changelogs name the same version
+        run: |
+          set -e
+          header=$(sed -n 's/^ \* Version: *//p' replyze/replyze.php)
+          constant=$(sed -n "s/^define( 'REPLYZE_VERSION', '\(.*\)' );/\1/p" replyze/replyze.php)
+          stable=$(sed -n 's/^Stable tag: *//p' replyze/readme.txt | tr -d '\r')
+          echo "header=$header constant=$constant stable=$stable"
+          test -n "$header"
+          test "$header" = "$constant"
+          test "$header" = "$stable"
+          grep -q "^= $header =" replyze/readme.txt
+          grep -q "^## \[$header\]" CHANGELOG.md
