@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name:       Replyze — AI Customer Support Chat
- * Plugin URI:        https://replyze.chat/integrations
+ * Plugin URI:        https://github.com/Replyze/wordpress-live-chat
  * Description:       Adds your Replyze chat widget to this site: AI answers from your own content, a shared inbox for your team, and live chat. Signed-in users can be recognised in the chat.
- * Version:           1.2.0
+ * Version:           1.2.1
  * Requires at least: 5.7
  * Requires PHP:      7.4
  * Author:            Replyze
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'REPLYZE_VERSION', '1.2.0' );
+define( 'REPLYZE_VERSION', '1.2.1' );
 define( 'REPLYZE_OPTION_KEY', 'replyze_settings' );
 define( 'REPLYZE_DASHBOARD_URL', 'https://client.replyze.chat' );
 
@@ -46,10 +46,31 @@ final class Replyze_Plugin {
 	private static $instance = null;
 
 	/**
-	 * Remembers that a signed-in user was identified, so the widget forgets
-	 * them on the first page after they sign out (a shared computer).
+	 * The browser's localStorage key for who was identified in the chat on
+	 * it (an opaque per-site marker, not the user's id or email), so the
+	 * widget forgets them when they sign out or someone else signs in.
 	 */
 	const SIGNED_IN_FLAG = 'replyze_wp_identified';
+
+	/**
+	 * The prefix of the keys widget.js keeps in localStorage (its chat,
+	 * contact and visitor key). The plugin removes them itself before the
+	 * widget starts when the person on this browser changed: the widget's
+	 * own reset() alone runs while it is still restoring the previous
+	 * person's chat, and that restore would bring them back.
+	 */
+	const WIDGET_STORAGE_PREFIX = 'aichat_';
+
+	/**
+	 * The widget's visitor cookie, removed at the same moment, so the first
+	 * page view after the change isn't counted for the previous person.
+	 */
+	const WIDGET_VISITOR_COOKIE = 'rz_track_id';
+
+	/**
+	 * Longest name the Replyze API accepts in identify().
+	 */
+	const MAX_NAME_LENGTH = 255;
 
 	/**
 	 * The instance.
@@ -76,9 +97,10 @@ final class Replyze_Plugin {
 		add_shortcode( 'replyze', array( $this, 'shortcode' ) );
 	}
 
-	/* ------------------------------------------------------------------
+	/*
 	 * Settings
-	 * ------------------------------------------------------------------ */
+	 * ------------------------------------------------------------
+	 */
 
 	/**
 	 * What a fresh install starts with.
@@ -155,12 +177,12 @@ final class Replyze_Plugin {
 		$clean['identify_users'] = empty( $input['identify_users'] ) ? 0 : 1;
 		$clean['match_language'] = empty( $input['match_language'] ) ? 0 : 1;
 
-		$ids = isset( $input['excluded_ids'] ) ? sanitize_text_field( wp_unslash( $input['excluded_ids'] ) ) : '';
-		$ids = array_filter( array_map( 'absint', explode( ',', $ids ) ) );
+		$ids                   = isset( $input['excluded_ids'] ) ? sanitize_text_field( wp_unslash( $input['excluded_ids'] ) ) : '';
+		$ids                   = array_filter( array_map( 'absint', explode( ',', $ids ) ) );
 		$clean['excluded_ids'] = implode( ',', array_unique( $ids ) );
 
-		$types = isset( $input['excluded_post_types'] ) && is_array( $input['excluded_post_types'] ) ? $input['excluded_post_types'] : array();
-		$known = array_keys( $this->public_post_types() );
+		$types                        = isset( $input['excluded_post_types'] ) && is_array( $input['excluded_post_types'] ) ? $input['excluded_post_types'] : array();
+		$known                        = array_keys( $this->public_post_types() );
 		$clean['excluded_post_types'] = array_values( array_intersect( array_map( 'sanitize_key', wp_unslash( $types ) ), $known ) );
 
 		$secret = isset( $input['identity_secret'] ) ? trim( sanitize_text_field( wp_unslash( $input['identity_secret'] ) ) ) : '';
@@ -194,9 +216,10 @@ final class Replyze_Plugin {
 		return $out;
 	}
 
-	/* ------------------------------------------------------------------
+	/*
 	 * Admin page
-	 * ------------------------------------------------------------------ */
+	 * ------------------------------------------------------------
+	 */
 
 	/**
 	 * Settings → Replyze Chat.
@@ -281,29 +304,33 @@ final class Replyze_Plugin {
 				<a href="https://replyze.chat" target="_blank" rel="noopener noreferrer">replyze.chat</a>
 			</p>
 
-			<?php settings_errors( REPLYZE_OPTION_KEY ); ?>
-
 			<?php if ( ! $has_token ) : ?>
 				<div class="replyze-card is-accent">
 					<h2><?php esc_html_e( 'Get started', 'replyze' ); ?></h2>
 					<ol class="replyze-steps">
 						<li>
 							<?php
-							echo wp_kses( sprintf(
-								/* translators: %s: link to the Replyze dashboard */
-								esc_html__( 'Sign in to Replyze at %s, or create a workspace there.', 'replyze' ),
-								'<a href="' . esc_url( REPLYZE_DASHBOARD_URL . '/register?source=wordpress' ) . '" target="_blank" rel="noopener noreferrer">client.replyze.chat</a>'
-							), self::allowed_html() );
+							echo wp_kses(
+								sprintf(
+									/* translators: %s: link to the Replyze dashboard */
+									esc_html__( 'Sign in to Replyze at %s, or create a free account there.', 'replyze' ),
+									'<a href="' . esc_url( self::signup_url() ) . '" target="_blank" rel="noopener noreferrer">client.replyze.chat</a>'
+								),
+								self::allowed_html()
+							);
 							?>
 						</li>
 						<li>
 							<?php
-							echo wp_kses( sprintf(
-								/* translators: 1: where the token is in Replyze, 2: how a token starts */
-								esc_html__( 'Copy your widget token from %1$s. It starts with %2$s.', 'replyze' ),
-								'<strong>' . esc_html__( 'Settings → Integrations → Install widget', 'replyze' ) . '</strong>',
-								'<span class="replyze-code">wgt_</span>'
-							), self::allowed_html() );
+							echo wp_kses(
+								sprintf(
+									/* translators: 1: where the token is in Replyze, 2: how a token starts */
+									esc_html__( 'Copy your widget token from %1$s. It starts with %2$s.', 'replyze' ),
+									'<strong>' . esc_html__( 'Settings → Integrations → Install widget', 'replyze' ) . '</strong>',
+									'<span class="replyze-code">wgt_</span>'
+								),
+								self::allowed_html()
+							);
 							?>
 						</li>
 						<li><?php esc_html_e( 'Paste it below and save.', 'replyze' ); ?></li>
@@ -375,11 +402,14 @@ final class Replyze_Plugin {
 
 					<p class="replyze-help">
 						<?php
-						echo wp_kses( sprintf(
-							/* translators: %s: the shortcode */
-							esc_html__( 'A page or post with the %s shortcode always shows the widget, even where these rules hide it.', 'replyze' ),
-							'<span class="replyze-code">[replyze]</span>'
-						), self::allowed_html() );
+						echo wp_kses(
+							sprintf(
+								/* translators: %s: the shortcode */
+								esc_html__( 'A page or post with the %s shortcode always shows the widget, even where these rules hide it.', 'replyze' ),
+								'<span class="replyze-code">[replyze]</span>'
+							),
+							self::allowed_html()
+						);
 						?>
 					</p>
 				</div>
@@ -399,6 +429,7 @@ final class Replyze_Plugin {
 						<label for="replyze_identity_secret"><?php esc_html_e( 'Identity secret (recommended)', 'replyze' ); ?></label>
 						<input type="password" id="replyze_identity_secret" name="<?php echo esc_attr( $name ); ?>[identity_secret]" value="" placeholder="<?php echo esc_attr( $has_secret ? __( 'Saved. Leave empty to keep it.', 'replyze' ) : '' ); ?>" autocomplete="new-password" spellcheck="false" />
 						<p class="replyze-help"><?php esc_html_e( 'From Replyze: Settings → Chat Widget → Identity. With it, this site signs each user, so the same person is one verified contact on every device, and nobody can pretend to be them. It stays on this server; it is never put in the page.', 'replyze' ); ?></p>
+						<p class="replyze-help"><?php esc_html_e( 'If you make a new secret or turn identity verification off in Replyze, paste the new one here or remove this one: Replyze refuses users signed with an old secret.', 'replyze' ); ?></p>
 						<?php if ( $has_secret ) : ?>
 							<label>
 								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[clear_identity_secret]" value="1" />
@@ -468,11 +499,14 @@ final class Replyze_Plugin {
 			<ol class="replyze-steps">
 				<li>
 					<?php
-					echo wp_kses( sprintf(
-						/* translators: %s: link to the WooCommerce REST API key screen */
-						esc_html__( 'Create a REST API key in %s: description "Replyze", your user, permissions Read.', 'replyze' ),
-						'<a href="' . esc_url( $create_key_url ) . '">' . esc_html__( 'WooCommerce → Settings → Advanced → REST API', 'replyze' ) . '</a>'
-					), self::allowed_html() );
+					echo wp_kses(
+						sprintf(
+							/* translators: %s: link to the WooCommerce REST API key screen */
+							esc_html__( 'Create a REST API key in %s: description "Replyze", your user, permissions Read.', 'replyze' ),
+							'<a href="' . esc_url( $create_key_url ) . '">' . esc_html__( 'WooCommerce → Settings → Advanced → REST API', 'replyze' ) . '</a>'
+						),
+						self::allowed_html()
+					);
 					?>
 				</li>
 				<li><?php esc_html_e( 'Open Replyze and paste the consumer key and consumer secret there. They are kept encrypted in Replyze, not in this plugin.', 'replyze' ); ?></li>
@@ -487,9 +521,10 @@ final class Replyze_Plugin {
 		<?php
 	}
 
-	/* ------------------------------------------------------------------
+	/*
 	 * The widget
-	 * ------------------------------------------------------------------ */
+	 * ------------------------------------------------------------
+	 */
 
 	/**
 	 * Whether this page gets the widget.
@@ -554,16 +589,28 @@ final class Replyze_Plugin {
 			$config['language'] = determine_locale();
 		}
 
-		// WordPress 6.3+ loads it async; older versions in the footer.
-		wp_register_script( 'replyze-widget', REPLYZE_WIDGET_URL, array(), null, array( 'in_footer' => true, 'strategy' => 'async' ) ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- the widget is versioned by Replyze.
+		// WordPress 6.3+ loads it async; older versions in the footer. No
+		// version: the URL stays the one Replyze serves and versions itself.
+		wp_register_script(
+			'replyze-widget',
+			REPLYZE_WIDGET_URL,
+			array(),
+			null, // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+			array(
+				'in_footer' => true,
+				'strategy'  => 'async',
+			)
+		);
 		wp_add_inline_script( 'replyze-widget', 'window.ReplyzeConfig = ' . wp_json_encode( $config ) . ';' . $this->visitor_script( $settings ), 'before' );
 		wp_enqueue_script( 'replyze-widget' );
 	}
 
 	/**
-	 * Who the signed-in user is, for the widget's identify(); and the first
-	 * page after they sign out, the widget's reset(). Nothing when the
-	 * setting is off.
+	 * Who the signed-in user is, for the widget's identify(). When the person
+	 * on this browser changed since the last page (they signed out, or
+	 * someone else signed in), the widget first forgets the previous one:
+	 * its stored chat is removed before it starts, then its reset() gives
+	 * the browser a new visitor id. Nothing when the setting is off.
 	 *
 	 * @param array<string, mixed> $settings The settings.
 	 * @return string JavaScript.
@@ -573,15 +620,39 @@ final class Replyze_Plugin {
 			return '';
 		}
 
-		$flag = wp_json_encode( self::SIGNED_IN_FLAG );
-		$who  = $this->identity( $settings );
-		if ( null === $who ) {
-			return '(function(){try{if(localStorage.getItem(' . $flag . ')){localStorage.removeItem(' . $flag . ');'
-				. 'var R=window.Replyze=window.Replyze||{};R._queue=R._queue||[];R._queue.push(["reset"]);}}catch(e){}})();';
-		}
+		$who    = $this->identity( $settings );
+		$marker = null === $who ? '' : self::visitor_marker( get_current_user_id() );
 
-		return '(function(){var R=window.Replyze=window.Replyze||{};R._queue=R._queue||[];R._queue.push(["identify",' . wp_json_encode( $who ) . ']);'
-			. 'try{localStorage.setItem(' . $flag . ',"1")}catch(e){}})();';
+		// w window, d document, k marker key, p widget storage prefix,
+		// c widget visitor cookie, me this user's marker ('' signed out),
+		// who the identify() payload (null signed out).
+		return '(function(w,d,k,p,c,me,who){'
+			. 'var s=null,was=null;try{s=w.localStorage;was=s.getItem(k)}catch(e){}'
+			. 'var R=w.Replyze=w.Replyze||{};R._queue=R._queue||[];'
+			. 'if(was&&was!==me){'
+			. 'try{for(var i=s.length-1;i>=0;i--){var n=s.key(i);if(n&&n.indexOf(p)===0)s.removeItem(n)}}catch(e){}'
+			. 'var x=c+"=; path=/; max-age=0; SameSite=Lax";d.cookie=x;d.cookie=x+"; domain="+w.location.hostname.split(".").slice(-2).join(".");'
+			. 'R._queue.push(["reset"])}'
+			. 'try{if(me)s.setItem(k,me);else if(was)s.removeItem(k)}catch(e){}'
+			. 'if(who)R._queue.push(["identify",who])'
+			. '})(window,document,'
+			. wp_json_encode( self::SIGNED_IN_FLAG ) . ','
+			. wp_json_encode( self::WIDGET_STORAGE_PREFIX ) . ','
+			. wp_json_encode( self::WIDGET_VISITOR_COOKIE ) . ','
+			. wp_json_encode( $marker ) . ','
+			. wp_json_encode( $who ) . ');';
+	}
+
+	/**
+	 * An opaque marker for a user on this site (a salted hash, so the page
+	 * holds neither the user id nor the email): it only tells whether the
+	 * same person is still signed in on this browser.
+	 *
+	 * @param int $wp_user_id The WordPress user id.
+	 * @return string
+	 */
+	public static function visitor_marker( $wp_user_id ) {
+		return substr( wp_hash( 'replyze-visitor|' . absint( $wp_user_id ) ), 0, 20 );
 	}
 
 	/**
@@ -603,12 +674,13 @@ final class Replyze_Plugin {
 
 		$name = trim( (string) $user->first_name . ' ' . (string) $user->last_name );
 		if ( '' === $name ) {
-			$name = (string) $user->display_name;
+			$name = trim( (string) $user->display_name );
 		}
 
 		$who = array(
 			'email' => (string) $user->user_email,
-			'name'  => $name,
+			// Replyze refuses the whole identify() for a longer name.
+			'name'  => mb_substr( $name, 0, self::MAX_NAME_LENGTH ),
 		);
 
 		$secret = (string) $settings['identity_secret'];
@@ -636,6 +708,22 @@ final class Replyze_Plugin {
 	public static function user_id( $wp_user_id ) {
 		$host = wp_parse_url( home_url(), PHP_URL_HOST );
 		return 'wp:' . strtolower( (string) $host ) . ':' . absint( $wp_user_id );
+	}
+
+	/**
+	 * Sign-up in Replyze, tagged so Replyze sees the account came from this plugin.
+	 *
+	 * @return string
+	 */
+	private static function signup_url() {
+		return add_query_arg(
+			array(
+				'utm_source'  => 'wordpress', // phpcs:ignore WordPress.WP.CapitalPDangit.MisspelledInText -- a URL parameter value.
+				'utm_medium'  => 'plugin',
+				'utm_content' => 'settings',
+			),
+			REPLYZE_DASHBOARD_URL . '/register'
+		);
 	}
 
 	/**
@@ -669,17 +757,17 @@ final class Replyze_Plugin {
 		}
 		return '';
 	}
+
+	/**
+	 * Activation: the defaults, if it was never set up.
+	 */
+	public static function activate() {
+		$existing = get_option( REPLYZE_OPTION_KEY );
+		if ( false === $existing || ! is_array( $existing ) ) {
+			add_option( REPLYZE_OPTION_KEY, self::defaults() );
+		}
+	}
 }
 
 Replyze_Plugin::instance();
-
-/**
- * Activation: the defaults, if it was never set up.
- */
-function replyze_activate() {
-	$existing = get_option( REPLYZE_OPTION_KEY );
-	if ( false === $existing || ! is_array( $existing ) ) {
-		add_option( REPLYZE_OPTION_KEY, Replyze_Plugin::defaults() );
-	}
-}
-register_activation_hook( __FILE__, 'replyze_activate' );
+register_activation_hook( __FILE__, array( 'Replyze_Plugin', 'activate' ) );
