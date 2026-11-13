@@ -1,0 +1,30 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "meta": {
+    "title": "Replyze for WordPress",
+    "description": "The Replyze plugin installed from GitHub, on its settings page.",
+    "author": "Replyze",
+    "categories": ["Plugins"]
+  },
+  "landingPage": "/wp-admin/options-general.php?page=replyze",
+  "preferredVersions": {
+    "php": "8.3",
+    "wp": "latest"
+  },
+  "login": true,
+  "steps": [
+    {
+      "step": "installPlugin",
+      "pluginData": {
+        "resource": "git:directory",
+        "url": "https://github.com/Replyze/wordpress-live-chat",
+        "ref": "main",
+        "refType": "branch",
+        "path": "replyze"
+      },
+      "options": {
+        "activate": true
+      }
+    }
+  ]
+}
