@@ -4,7 +4,7 @@ Tags: live chat, customer support, ai chatbot, chat widget, help desk
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,35 +12,48 @@ Adds your Replyze chat widget to WordPress: AI answers from your own content, a 
 
 == Description ==
 
-[Replyze](https://replyze.chat) is a customer support platform: an AI agent that answers from your website and documents, a shared inbox where your team takes over, and a chat widget for your site. This plugin adds your Replyze widget to WordPress without editing theme files.
+[Replyze](https://replyze.chat) is a customer support service: an AI agent that answers from your website and documents, a shared inbox where your team takes over, and a chat widget for your site. This plugin adds your Replyze widget to WordPress without editing theme files.
 
-You need a Replyze account. The plugin itself is free; Replyze's plans and prices are on [replyze.chat/pricing](https://replyze.chat/pricing).
+You need a Replyze account. You can create a free one at [client.replyze.chat](https://client.replyze.chat/register). Plans are on [replyze.chat/pricing](https://replyze.chat/pricing).
 
 = What the plugin does =
 
 * Adds the widget to every page, loaded asynchronously in the footer.
 * Hides it where you choose: from signed-in administrators, on whole content types (for example Products), or on single pages and posts by ID.
 * The `[replyze]` shortcode shows the widget on a page even where those rules hide it.
-* Optionally tells Replyze who your signed-in users are (name and email), so your team sees who they are talking to, including WooCommerce customers. With the identity secret from Replyze, each user is signed on your server (HMAC-SHA256), so the same person is one verified contact on every device and nobody can pretend to be them. The secret never leaves your server.
-* When a signed-in user signs out, the widget forgets them on that browser.
+* Optionally tells Replyze who your signed-in users are (name and email), so your team sees who they are talking to, including WooCommerce customers.
+* With the identity secret from Replyze, each user is signed on your server (HMAC-SHA256), so the same person is one verified contact on every device and nobody can pretend to be them. The secret never leaves your server.
+* When a signed-in user signs out, or someone else signs in on the same browser, the chat forgets the previous person on that browser.
 * Optionally shows the widget in the page's language (for multilingual sites).
 * With WooCommerce active, the settings page shows how to connect the store in Replyze with a read-only REST API key, so the AI can answer product, stock and price questions. The plugin never stores that key.
 
+= For developers =
+
+* `replyze_show_widget` filter: decide per page whether the widget loads.
+* `replyze_identity` filter: change what the widget is told about the signed-in user, or return `null` to not identify them.
+* `REPLYZE_API_URL` and `REPLYZE_WIDGET_URL` constants in `wp-config.php` load the widget from somewhere else, for example a staging environment.
+
+The source code and issue tracker are on [GitHub](https://github.com/Replyze/wordpress-live-chat).
+
 == External services ==
 
-This plugin connects your site to Replyze, the service that runs the chat. It does nothing until you paste your widget token.
+This plugin connects your site to Replyze, the customer support service that runs the chat. It loads and sends nothing until you save a widget token in Settings → Replyze Chat. After that, on every page where the widget shows:
 
-* **The widget script** is loaded from `https://cdn.replyze.chat/widget.js` on the pages that show the widget.
-* **The chat** then talks to `https://client.replyze.chat`: the messages a visitor sends, the page they are on, their browser language and the visitor data the widget collects, as described in Replyze's privacy policy.
-* **Signed-in users**, only if you turn on "Tell Replyze who signed-in users are": their name and email, and with an identity secret a user id of the form `wp:your-site-host:123` with its signature.
+* The visitor's browser loads the widget script from Replyze's CDN, `https://cdn.replyze.chat/widget.js`.
+* The widget talks to the Replyze API at `https://client.replyze.chat`. On each page it sends the page address and title, the referrer, the browser, operating system, device type, language, time zone and screen size, and a random visitor id that it keeps in a first-party cookie (`rz_track_id`) and in the browser's local storage. When the visitor chats, it sends their messages, the files they attach and the name and email they enter.
+* Only if you turn on "Tell Replyze who signed-in users are": for a signed-in user, their name and email, and with an identity secret also a user id of the form `wp:your-site-host:123` and its HMAC-SHA256 signature. The identity secret itself is never sent.
 
-Replyze [Terms of Service](https://replyze.chat/terms) · [Privacy Policy](https://replyze.chat/privacy)
+The settings page only links to the Replyze dashboard; nothing is sent from the admin area.
+
+Replyze [Terms of Service](https://replyze.chat/terms) and [Privacy Policy](https://replyze.chat/privacy).
 
 == Installation ==
 
-1. In WordPress, go to *Plugins → Add New Plugin → Upload Plugin*, choose the plugin ZIP (`replyze.zip` from [the GitHub releases](https://github.com/Replyze/wordpress-live-chat/releases)), then *Install Now* and *Activate*.
+1. Download `replyze.zip` from the [latest GitHub release](https://github.com/Replyze/wordpress-live-chat/releases/latest). In WordPress, go to *Plugins → Add New Plugin → Upload Plugin*, choose the ZIP, then *Install Now* and *Activate*.
 2. Go to *Settings → Replyze Chat*.
-3. Paste your widget token (it starts with `wgt_`; in Replyze under *Settings → Integrations → Install widget*) and save.
+3. Paste your widget token and save. It starts with `wgt_`; in Replyze it is under *Settings → Integrations → Install widget*.
+
+The widget now shows on your site. Signed-in administrators don't see it by default, so open the site in a private window to check.
 
 To recognise signed-in users, turn on "Tell Replyze who signed-in users are". For verified users, turn on identity verification in Replyze (*Settings → Chat Widget → Identity*) and paste its secret in the plugin.
 
@@ -48,11 +61,15 @@ To recognise signed-in users, turn on "Tell Replyze who signed-in users are". Fo
 
 = Do I need a Replyze account? =
 
-Yes. The plugin shows your Replyze workspace's widget. You can create a workspace at [client.replyze.chat](https://client.replyze.chat/register).
+Yes. The plugin shows your Replyze workspace's widget. You can create a free account at [client.replyze.chat](https://client.replyze.chat/register).
 
 = Where do I find my widget token? =
 
 In Replyze: *Settings → Integrations → Install widget*. It starts with `wgt_`.
+
+= I saved the token but I don't see the chat. =
+
+Signed-in administrators don't see it by default: open the site in a private window, or turn off "Hide it from administrators who are signed in". Also check that your site's domain is allowed in Replyze (*Settings → Chat Widget*), and that a page cache or script optimisation plugin isn't serving an old page or delaying the script.
 
 = Can I hide the widget on some pages? =
 
@@ -68,7 +85,15 @@ The user's details are only added to pages for signed-in users, which caching pl
 
 = What happens without the identity secret? =
 
-Signed-in users are passed on unverified: your team sees their name and email, but they don't become verified contacts, and Replyze never lets them take over an email that belongs to a verified contact. With the secret (Replyze: Settings → Chat Widget → Identity), each user is one verified contact on every device.
+Signed-in users are passed on unverified: your team sees their name and email, but they don't become verified contacts, and Replyze never lets them take over an email that belongs to a verified contact. With the secret (Replyze: *Settings → Chat Widget → Identity*), each user is one verified contact on every device.
+
+= I made a new identity secret in Replyze. =
+
+Paste the new secret in the plugin, or remove the saved one. Replyze refuses users signed with an old secret, so until then signed-in users aren't recognised.
+
+= What is removed when I delete the plugin? =
+
+Its settings, including the identity secret, on every site of a multisite network. Your chats stay in Replyze.
 
 = Is this plugin GPL? =
 
@@ -79,6 +104,15 @@ Yes, GPLv2 or later.
 1. The settings page.
 
 == Changelog ==
+
+= 1.2.1 =
+* Fixed: after a signed-in user signed out, the chat could bring their conversation back on the next page instead of forgetting it.
+* Fixed: when another user signed in on the same browser without the identity secret, the chat kept the previous user's conversation.
+* Fixed: a name longer than 255 characters made Replyze refuse the whole identification.
+* Uninstall now removes the settings on every site of a large multisite network, not only the first 100.
+* A refused token or identity secret no longer shows its message twice.
+* The sign-up link on the settings page says the account comes from this plugin.
+* Tested up to WordPress 7.1.
 
 = 1.2.0 =
 * Signed-in users and WooCommerce customers can be identified in the chat, optionally verified with the identity secret from Replyze; the widget forgets them when they sign out.
@@ -95,6 +129,9 @@ Yes, GPLv2 or later.
 * First release.
 
 == Upgrade Notice ==
+
+= 1.2.1 =
+Signing out now reliably clears the chat on that browser, also when another user signs in.
 
 = 1.2.0 =
 Recognise signed-in users, hide the widget by content type, and a working [replyze] shortcode.
