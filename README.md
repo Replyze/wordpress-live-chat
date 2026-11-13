@@ -162,7 +162,7 @@ Yes. Each site has its own settings and token. Deleting the plugin removes the s
 
 ## Development
 
-The plugin is plain PHP with no build step and no runtime dependencies. You need PHP 7.4+ and Composer for the coding standards, and Node.js 20+ to run WordPress locally with [WordPress Playground](https://wordpress.org/playground/).
+The plugin is plain PHP with no build step and no runtime dependencies. You need PHP 7.4+ and Composer for the coding standards, and Node.js 24+ to run WordPress locally with [WordPress Playground](https://wordpress.org/playground/).
 
 ```bash
 git clone https://github.com/Replyze/wordpress-live-chat.git
