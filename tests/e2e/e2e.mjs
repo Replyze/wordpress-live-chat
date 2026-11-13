@@ -8,7 +8,9 @@
 // It checks: activation, the settings page, the widget tag and config, the
 // hide rules and shortcode, identify() with and without the identity secret
 // (the HMAC the Replyze API checks), sign-out and user switch on one browser,
-// the README's tracking recipe, PHP notices, and uninstall.
+// also when the plugin's script runs after widget.js started (delayed by an
+// optimisation plugin), the README's tracking recipe, PHP notices, and
+// uninstall.
 import { spawn } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -266,6 +268,17 @@ try {
   await user.waitForTimeout(1500);
   st = await widgetState(user);
   check('and stays it on the next page', st.session && st.session.contact_id === '900');
+
+  // The plugin's script delayed until widget.js has started (an optimisation
+  // plugin): identify() goes to the running widget, not into a queue it no longer reads.
+  apiLog.length = 0;
+  await user.goto(url + '/?rz_late=1');
+  await user.waitForFunction(() => window.__rzLateRan === true, null, { timeout: 20000 });
+  await user.waitForTimeout(1500);
+  check('scripts delayed: identify() reaches the running widget', apiLog.some((r) => r.path === '/identify' && r.body.user_id === userId && r.body.user_hash === hash), JSON.stringify(apiLog.map((r) => r.path)));
+  await user.goto(url + '/');
+  await user.waitForTimeout(1500);
+  st = await widgetState(user);
   const aliceVisitorId = st.ls.aichat_rz_track_id;
 
   // She signs out; the next page on the same browser.
@@ -278,6 +291,20 @@ try {
   check('after sign-out: no API call as her', !apiLog.some((r) => r.visitorKey === 'vk900' || String(r.body.contact_id) === '900'), JSON.stringify(apiLog.map((r) => [r.path, r.body.contact_id || null, r.visitorKey])));
   check('after sign-out: no page view under her visitor id', aliceVisitorId && !apiLog.some((r) => r.body.session_token === aliceVisitorId) && st.ls.aichat_rz_track_id !== aliceVisitorId);
   check('after sign-out: the widget forgot her', !(st.session && st.session.contact_id === '900') && st.ls.aichat_contact_id !== '900' && !st.ls.replyze_wp_identified, JSON.stringify({ session: st.session, stored: st.ls.aichat_contact_id || null }));
+
+  // Again, with the plugin's script delayed until widget.js has started and
+  // is restoring her chat: reset() goes to the running widget.
+  await login(user, url, 'alice', 'alicepass');
+  await user.goto(url + '/');
+  await widgetStarted(user);
+  await user.waitForTimeout(1500);
+  check('signed in again: her verified contact', (await widgetState(user)).session?.contact_id === '900');
+  await logout(user, url);
+  await user.goto(url + '/?rz_late=1');
+  await user.waitForFunction(() => window.__rzLateRan === true, null, { timeout: 20000 });
+  await user.waitForTimeout(2500);
+  st = await widgetState(user);
+  check('scripts delayed, after sign-out: the widget forgot her', !(st.session && st.session.contact_id === '900') && st.ls.aichat_contact_id !== '900' && !st.ls.replyze_wp_identified, JSON.stringify({ session: st.session, stored: st.ls.aichat_contact_id || null }));
 
   // A very long name is cut to what the API accepts.
   const ctxC = await browser.newContext();

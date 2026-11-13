@@ -4,6 +4,17 @@ All notable changes to the Replyze plugin for WordPress. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-11-13
+
+### Fixed
+
+- The sign-out and sign-in calls (`reset()` and `identify()`) waited in `window.Replyze._queue` even when `widget.js` was already running, which reads the queue only when it starts. On pages whose scripts are delayed by an optimisation plugin, or with a second copy of the widget on the page, a sign-out or a sign-in could be missed. The plugin now calls a running widget directly.
+
+### Changed
+
+- The sign-up link on the settings page uses the Replyze UTM standard: `utm_source=wordpress&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=settings` (it was `utm_medium=plugin`, without a campaign). The settings page's link to replyze.chat carries the same, and the links in `readme.txt` carry `utm_content=readme`.
+- The reason for removing the widget's stored chat before it starts is updated: `widget.js` drops a restore that is still on its way at `reset()` since 13 November 2026. Removing the stored chat first stays as a second line of defence.
+
 ## [1.2.1] - 2026-11-13
 
 ### Fixed
@@ -56,6 +67,7 @@ Not published as a release.
 - The `[replyze]` shortcode.
 - Uninstall removes the settings, on every site of a multisite network.
 
-[Unreleased]: https://github.com/Replyze/wordpress-live-chat/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Replyze/wordpress-live-chat/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/Replyze/wordpress-live-chat/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/Replyze/wordpress-live-chat/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Replyze/wordpress-live-chat/releases/tag/v1.2.0

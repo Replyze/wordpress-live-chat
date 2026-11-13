@@ -3,7 +3,7 @@
  * Plugin Name:       Replyze — AI Customer Support Chat
  * Plugin URI:        https://github.com/Replyze/wordpress-live-chat
  * Description:       Adds your Replyze chat widget to this site: AI answers from your own content, a shared inbox for your team, and live chat. Signed-in users can be recognised in the chat.
- * Version:           1.2.1
+ * Version:           1.2.2
  * Requires at least: 5.7
  * Requires PHP:      7.4
  * Author:            Replyze
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'REPLYZE_VERSION', '1.2.1' );
+define( 'REPLYZE_VERSION', '1.2.2' );
 define( 'REPLYZE_OPTION_KEY', 'replyze_settings' );
 define( 'REPLYZE_DASHBOARD_URL', 'https://client.replyze.chat' );
 
@@ -54,10 +54,13 @@ final class Replyze_Plugin {
 
 	/**
 	 * The prefix of the keys widget.js keeps in localStorage (its chat,
-	 * contact and visitor key). The plugin removes them itself before the
-	 * widget starts when the person on this browser changed: the widget's
-	 * own reset() alone runs while it is still restoring the previous
-	 * person's chat, and that restore would bring them back.
+	 * contact, visitor key and who it was identified as). The plugin removes
+	 * them itself before the widget starts when the person on this browser
+	 * changed, then calls reset(). widget.js has dropped a restore that is
+	 * still on its way at reset() since 13 November 2026, so reset() alone
+	 * would do; removing them first stays as a second line of defence (a
+	 * browser that still has an older widget.js cached, or a page whose
+	 * scripts run late).
 	 */
 	const WIDGET_STORAGE_PREFIX = 'aichat_';
 
@@ -301,7 +304,7 @@ final class Replyze_Plugin {
 			</h1>
 			<p class="replyze-sub">
 				<?php esc_html_e( 'Your Replyze chat widget on this site.', 'replyze' ); ?>
-				<a href="https://replyze.chat" target="_blank" rel="noopener noreferrer">replyze.chat</a>
+				<a href="https://replyze.chat/?utm_source=wordpress&amp;utm_medium=referral&amp;utm_campaign=wordpress-live-chat&amp;utm_content=settings" target="_blank" rel="noopener noreferrer">replyze.chat</a>
 			</p>
 
 			<?php if ( ! $has_token ) : ?>
@@ -610,7 +613,11 @@ final class Replyze_Plugin {
 	 * on this browser changed since the last page (they signed out, or
 	 * someone else signed in), the widget first forgets the previous one:
 	 * its stored chat is removed before it starts, then its reset() gives
-	 * the browser a new visitor id. Nothing when the setting is off.
+	 * the browser a new visitor id. The calls wait in window.Replyze._queue
+	 * for widget.js; when widget.js already runs (scripts delayed by an
+	 * optimisation plugin, or a second copy of the widget on the page), they
+	 * go to it directly, since it no longer reads the queue. Nothing when
+	 * the setting is off.
 	 *
 	 * @param array<string, mixed> $settings The settings.
 	 * @return string JavaScript.
@@ -625,16 +632,18 @@ final class Replyze_Plugin {
 
 		// w window, d document, k marker key, p widget storage prefix,
 		// c widget visitor cookie, me this user's marker ('' signed out),
-		// who the identify() payload (null signed out).
+		// who the identify() payload (null signed out). q(method, args):
+		// to the running widget, or into the queue widget.js reads at start.
 		return '(function(w,d,k,p,c,me,who){'
 			. 'var s=null,was=null;try{s=w.localStorage;was=s.getItem(k)}catch(e){}'
 			. 'var R=w.Replyze=w.Replyze||{};R._queue=R._queue||[];'
+			. 'var q=function(m,a){if(R._initialized&&typeof R[m]==="function"){try{R[m].apply(R,a)}catch(e){}}else{R._queue.push([m].concat(a))}};'
 			. 'if(was&&was!==me){'
 			. 'try{for(var i=s.length-1;i>=0;i--){var n=s.key(i);if(n&&n.indexOf(p)===0)s.removeItem(n)}}catch(e){}'
 			. 'var x=c+"=; path=/; max-age=0; SameSite=Lax";d.cookie=x;d.cookie=x+"; domain="+w.location.hostname.split(".").slice(-2).join(".");'
-			. 'R._queue.push(["reset"])}'
+			. 'q("reset",[])}'
 			. 'try{if(me)s.setItem(k,me);else if(was)s.removeItem(k)}catch(e){}'
-			. 'if(who)R._queue.push(["identify",who])'
+			. 'if(who)q("identify",[who])'
 			. '})(window,document,'
 			. wp_json_encode( self::SIGNED_IN_FLAG ) . ','
 			. wp_json_encode( self::WIDGET_STORAGE_PREFIX ) . ','
@@ -718,9 +727,10 @@ final class Replyze_Plugin {
 	private static function signup_url() {
 		return add_query_arg(
 			array(
-				'utm_source'  => 'wordpress', // phpcs:ignore WordPress.WP.CapitalPDangit.MisspelledInText -- a URL parameter value.
-				'utm_medium'  => 'plugin',
-				'utm_content' => 'settings',
+				'utm_source'   => 'wordpress', // phpcs:ignore WordPress.WP.CapitalPDangit.MisspelledInText -- a URL parameter value.
+				'utm_medium'   => 'referral',
+				'utm_campaign' => 'wordpress-live-chat',
+				'utm_content'  => 'settings',
 			),
 			REPLYZE_DASHBOARD_URL . '/register'
 		);

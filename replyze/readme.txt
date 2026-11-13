@@ -4,7 +4,7 @@ Tags: live chat, customer support, ai chatbot, chat widget, help desk
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,9 +12,9 @@ Adds your Replyze chat widget to WordPress: AI answers from your own content, a 
 
 == Description ==
 
-[Replyze](https://replyze.chat) is a customer support service: an AI agent that answers from your website and documents, a shared inbox where your team takes over, and a chat widget for your site. This plugin adds your Replyze widget to WordPress without editing theme files.
+[Replyze](https://replyze.chat/?utm_source=wordpress&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=readme) is a customer support service: an AI agent that answers from your website and documents, a shared inbox where your team takes over, and a chat widget for your site. This plugin adds your Replyze widget to WordPress without editing theme files.
 
-You need a Replyze account. You can create a free one at [client.replyze.chat](https://client.replyze.chat/register). Plans are on [replyze.chat/pricing](https://replyze.chat/pricing).
+You need a Replyze account. You can create a free one at [client.replyze.chat](https://client.replyze.chat/register?utm_source=wordpress&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=readme). Plans are on [replyze.chat/pricing](https://replyze.chat/pricing?utm_source=wordpress&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=readme).
 
 = What the plugin does =
 
@@ -45,7 +45,7 @@ This plugin connects your site to Replyze, the customer support service that run
 
 The settings page only links to the Replyze dashboard; nothing is sent from the admin area.
 
-Replyze [Terms of Service](https://replyze.chat/terms) and [Privacy Policy](https://replyze.chat/privacy).
+Replyze [Terms of Service](https://replyze.chat/terms?utm_source=wordpress&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=readme) and [Privacy Policy](https://replyze.chat/privacy?utm_source=wordpress&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=readme).
 
 == Installation ==
 
@@ -61,7 +61,7 @@ To recognise signed-in users, turn on "Tell Replyze who signed-in users are". Fo
 
 = Do I need a Replyze account? =
 
-Yes. The plugin shows your Replyze workspace's widget. You can create a free account at [client.replyze.chat](https://client.replyze.chat/register).
+Yes. The plugin shows your Replyze workspace's widget. You can create a free account at [client.replyze.chat](https://client.replyze.chat/register?utm_source=wordpress&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=readme).
 
 = Where do I find my widget token? =
 
@@ -105,6 +105,10 @@ Yes, GPLv2 or later.
 
 == Changelog ==
 
+= 1.2.2 =
+* Fixed: with scripts delayed by an optimisation plugin, or a second copy of the widget on the page, the chat could miss a sign-out or a sign-in: they now reach the running widget directly.
+* The links to Replyze on the settings page and here say where they come from.
+
 = 1.2.1 =
 * Fixed: after a signed-in user signed out, the chat could bring their conversation back on the next page instead of forgetting it.
 * Fixed: when another user signed in on the same browser without the identity secret, the chat kept the previous user's conversation.
@@ -129,6 +133,9 @@ Yes, GPLv2 or later.
 * First release.
 
 == Upgrade Notice ==
+
+= 1.2.2 =
+Sign-outs and sign-ins also reach the chat when page scripts are delayed by an optimisation plugin.
 
 = 1.2.1 =
 Signing out now reliably clears the chat on that browser, also when another user signs in.

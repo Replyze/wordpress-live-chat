@@ -14,8 +14,8 @@ The plugin is the `replyze/` folder. A release is a tag `vX.Y.Z` on `main`; `.gi
 
    ```bash
    git checkout main && git pull
-   git -c user.name="Replyze" -c user.email="dev@replyze.chat" tag -a v1.2.1 -m "v1.2.1"
-   git push origin v1.2.1
+   git -c user.name="Replyze" -c user.email="dev@replyze.chat" tag -a v1.2.2 -m "v1.2.2"
+   git push origin v1.2.2
    ```
 
 4. The release workflow then:
@@ -30,7 +30,7 @@ The README's Quickstart links to `releases/latest`, so it points to the new ZIP 
 
 ```bash
 bash bin/build-zip.sh                 # dist/replyze.zip, with replyze/ at its root
-bash bin/changelog-section.sh 1.2.1   # the release notes for a version
+bash bin/changelog-section.sh 1.2.2   # the release notes for a version
 ```
 
 CI builds the same ZIP on every push; it is the `replyze-zip` artifact of the CI run.
@@ -55,4 +55,4 @@ To push a release that is already tagged to wordpress.org after this setup, re-r
 
 ## Links in the plugin
 
-`replyze/readme.txt` (the wordpress.org listing) and the plugin's settings page are part of the release ZIP, so their links change only with a plugin release. The UTM standard for them is `utm_source=wordpress&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=<spot>`. Version 1.2.1 still sends `utm_source=wordpress&utm_medium=plugin&utm_content=settings` from the settings page (`signup_url()` in `replyze/replyze.php`), and `readme.txt` links have no UTMs. Switch both in the next plugin release.
+`replyze/readme.txt` (the wordpress.org listing) and the plugin's settings page are part of the release ZIP, so their links change only with a plugin release. The UTM standard for them is `utm_source=wordpress&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=<spot>`. Since 1.2.2 the settings page's links (`signup_url()` and the link to replyze.chat in `replyze/replyze.php`) use `utm_content=settings`, and the replyze.chat links in `readme.txt` use `utm_content=readme`. 1.2.1 and older sent `utm_source=wordpress&utm_medium=plugin&utm_content=settings` from the sign-up link.

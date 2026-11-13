@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Prints one version's section of CHANGELOG.md (the GitHub release notes).
-# Usage: bin/changelog-section.sh 1.2.1
+# Usage: bin/changelog-section.sh 1.2.2
 set -euo pipefail
 version="${1:?usage: bin/changelog-section.sh <version>}"
 cd "$(dirname "$0")/.."
