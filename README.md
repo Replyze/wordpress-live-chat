@@ -177,13 +177,24 @@ npx @wp-playground/cli@latest server --auto-mount=./replyze --login
 
 The last command prints the local URL. The folder is mounted, not copied: edits show on the next page load, and deleting the plugin inside that WordPress deletes your files.
 
-CI (`.github/workflows/ci.yml`) runs `php -l` on PHP 7.4 to 8.4, PHPCS, the official [Plugin Check](https://github.com/WordPress/plugin-check-action) and a check that the version is the same everywhere. Releases are built by `.github/workflows/release.yml`; see [RELEASING.md](RELEASING.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
+The end-to-end test runs the plugin in WordPress Playground with the live `widget.js` from `cdn.replyze.chat` and a mocked Replyze API (nothing reaches a real workspace). It covers the settings page, the widget tag and config, the hide rules, `identify()` and its HMAC, sign-out and user switch on one browser, and uninstall:
+
+```bash
+cd tests/e2e
+npm ci
+npx playwright install chromium-headless-shell
+node e2e.mjs --php 7.4          # also --wp 5.7, --php 8.5
+```
+
+CI (`.github/workflows/ci.yml`) runs `php -l` on PHP 7.4 to 8.4, PHPCS, the official [Plugin Check](https://github.com/WordPress/plugin-check-action), builds `replyze.zip` and checks that the version is the same everywhere; `.github/workflows/e2e.yml` runs the end-to-end test on WordPress 5.7 and the latest WordPress, PHP 7.4 and 8.5. Releases are built by `.github/workflows/release.yml`; see [RELEASING.md](RELEASING.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ```
 replyze/              the plugin; the release ZIP contains this folder
   replyze.php         settings page, widget loading, identity
   uninstall.php       removes the settings on delete
   readme.txt          the wordpress.org readme
+tests/e2e/            end-to-end test (WordPress Playground + Playwright)
+bin/                  build-zip.sh, changelog-section.sh (used by CI and the release)
 playground/           the WordPress Playground demo blueprint
 .wordpress-org/       wordpress.org directory assets (screenshots)
 ```

@@ -1,0 +1,50 @@
+name: E2E
+
+# The plugin in a real WordPress (WordPress Playground) with the live
+# widget.js from cdn.replyze.chat and a mocked Replyze API: catches a widget
+# change that breaks the plugin (identify, sign-out, the queue) as well as
+# plugin bugs. See tests/e2e/e2e.mjs.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wordpress:
+    name: WordPress ${{ matrix.wp }}, PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { php: '7.4', wp: '5.7' }
+          - { php: '7.4', wp: 'latest' }
+          - { php: '8.5', wp: 'latest' }
+    defaults:
+      run:
+        working-directory: tests/e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium-headless-shell
+      - name: Run the end-to-end test
+        run: node e2e.mjs --php "${{ matrix.php }}" --wp "${{ matrix.wp }}"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-php${{ matrix.php }}-wp${{ matrix.wp }}
+          path: tests/e2e/out
+          retention-days: 7
