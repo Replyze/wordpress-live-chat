@@ -4,7 +4,7 @@ All notable changes to the Replyze plugin for WordPress. The format follows [Kee
 
 ## [Unreleased]
 
-## [1.2.1] - Unreleased
+## [1.2.1] - 2026-11-13
 
 ### Fixed
 
