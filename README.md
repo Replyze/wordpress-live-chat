@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://replyze.chat/?utm_source=github&utm_medium=wordpress-live-chat">
+  <a href="https://replyze.chat/?utm_source=github&utm_medium=referral&utm_campaign=wordpress-live-chat">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Replyze/.github/main/assets/logo-on-dark.png">
       <img src="https://raw.githubusercontent.com/Replyze/.github/main/assets/logo-on-light.png" alt="Replyze" height="48">
@@ -9,9 +9,9 @@
 
 # WordPress live chat and AI chatbot plugin
 
-The Replyze plugin for WordPress adds your [Replyze](https://replyze.chat/?utm_source=github&utm_medium=wordpress-live-chat) chat widget to any WordPress or WooCommerce site without touching theme files. Visitors get answers from an AI agent trained on your own content, your team takes over in a shared inbox when a person is needed, and signed-in users and WooCommerce customers can be recognised in the chat. For site owners and agencies.
+The Replyze plugin for WordPress adds your [Replyze](https://replyze.chat/?utm_source=github&utm_medium=referral&utm_campaign=wordpress-live-chat) chat widget to any WordPress or WooCommerce site without touching theme files. Visitors get answers from an AI agent trained on your own content, your team takes over in a shared inbox when a person is needed, and signed-in users and WooCommerce customers can be recognised in the chat. For site owners and agencies.
 
-**[Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=wordpress-live-chat&utm_content=cta-top)** · [Live demo](https://replyze.chat/?utm_source=github&utm_medium=wordpress-live-chat&utm_content=live-demo) · [Docs](https://github.com/Replyze/replyze)
+**[Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=cta-top)** · [Live demo](https://replyze.chat/?utm_source=github&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=live-demo) · [Docs](https://github.com/Replyze/replyze)
 
 [![CI](https://github.com/Replyze/wordpress-live-chat/actions/workflows/ci.yml/badge.svg)](https://github.com/Replyze/wordpress-live-chat/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/Replyze/wordpress-live-chat)](https://github.com/Replyze/wordpress-live-chat/releases/latest)
@@ -23,7 +23,7 @@ The Replyze plugin for WordPress adds your [Replyze](https://replyze.chat/?utm_s
 
 1. Download [`replyze.zip`](https://github.com/Replyze/wordpress-live-chat/releases/latest/download/replyze.zip) from the latest release.
 2. In WordPress, go to **Plugins → Add New Plugin → Upload Plugin**, choose `replyze.zip`, then **Install Now** and **Activate**.
-3. Go to **Settings → Replyze Chat**, paste your widget token and click **Save changes**. The token starts with `wgt_`; it is in the [Replyze dashboard](https://client.replyze.chat/?utm_source=github&utm_medium=wordpress-live-chat&utm_content=quickstart) under **Settings → Integrations → Install widget**.
+3. Go to **Settings → Replyze Chat**, paste your widget token and click **Save changes**. The token starts with `wgt_`; it is in the [Replyze dashboard](https://client.replyze.chat/?utm_source=github&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=quickstart) under **Settings → Integrations → Install widget**.
 
 The chat now shows on every page. Signed-in administrators don't see it by default, so check in a private window.
 
@@ -140,7 +140,7 @@ define( 'REPLYZE_WIDGET_URL', 'https://cdn.replyze.chat/widget.js' );
 ## FAQ
 
 **Do I need a Replyze account?**
-Yes. The plugin shows your Replyze workspace's widget. [Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=wordpress-live-chat&utm_content=faq); plans are on [replyze.chat/pricing](https://replyze.chat/pricing?utm_source=github&utm_medium=wordpress-live-chat&utm_content=faq).
+Yes. The plugin shows your Replyze workspace's widget. [Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=faq); plans are on [replyze.chat/pricing](https://replyze.chat/pricing?utm_source=github&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=faq).
 
 **Is it in the wordpress.org plugin directory?**
 Not yet. Install it from the ZIP of the [latest release](https://github.com/Replyze/wordpress-live-chat/releases/latest) as in the Quickstart.
@@ -152,7 +152,7 @@ Signed-in administrators don't see it by default: open the site in a private win
 The widget script loads asynchronously in the footer, so it doesn't hold up the page.
 
 **What does the plugin send to Replyze?**
-Nothing until you save a token. Then visitors' browsers load the widget from `cdn.replyze.chat`, and the widget talks to `client.replyze.chat` (page views and chats). Signed-in users' details are sent only if you turn that setting on. The full list is in the "External services" section of [`readme.txt`](replyze/readme.txt); see also Replyze's [Privacy Policy](https://replyze.chat/privacy?utm_source=github&utm_medium=wordpress-live-chat&utm_content=faq).
+Nothing until you save a token. Then visitors' browsers load the widget from `cdn.replyze.chat`, and the widget talks to `client.replyze.chat` (page views and chats). Signed-in users' details are sent only if you turn that setting on. The full list is in the "External services" section of [`readme.txt`](replyze/readme.txt); see also Replyze's [Privacy Policy](https://replyze.chat/privacy?utm_source=github&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=faq).
 
 **Does it work on multisite?**
 Yes. Each site has its own settings and token. Deleting the plugin removes the settings on every site of the network.
@@ -201,7 +201,7 @@ playground/           the WordPress Playground demo blueprint
 
 ## Links
 
-- [Replyze](https://replyze.chat/?utm_source=github&utm_medium=wordpress-live-chat&utm_content=footer): AI customer support and live chat
+- [Replyze](https://replyze.chat/?utm_source=github&utm_medium=referral&utm_campaign=wordpress-live-chat&utm_content=footer): AI customer support and live chat
 - [Replyze on GitHub](https://github.com/Replyze): SDKs, examples and the API docs
 - Support: support@replyze.chat
 
